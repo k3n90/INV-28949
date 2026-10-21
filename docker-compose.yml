@@ -1,0 +1,144 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-invix}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-invix}
+      POSTGRES_DB: ${POSTGRES_DB:-shop}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-invix}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-invix-secret}
+    volumes:
+      - miniodata:/data
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-invix}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-invix}
+      POSTGRES_DB: ${POSTGRES_DB:-shop}
+      POSTGRES_HOST: postgres
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-invix}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-invix-secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-goods}
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-dev-internal-token}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 20s
+    restart: unless-stopped
+
+  bot:
+    build: ./bot
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN:-}
+      ADMIN_IDS: ${ADMIN_IDS:-}
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-dev-internal-token}
+      API_URL: http://api:8000
+      WEBAPP_URL: ${WEBAPP_URL:-http://localhost:8080}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-dev-webhook-secret}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health')",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    environment:
+      API_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+  nginx:
+    build: ./nginx
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+      bot:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    restart: unless-stopped
+
+  seed:
+    build: ./backend
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-invix}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-invix}
+      POSTGRES_DB: ${POSTGRES_DB:-shop}
+      POSTGRES_HOST: postgres
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-invix}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-invix-secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-goods}
+    volumes:
+      - ./seed:/seed:ro
+    command: ["python", "/seed/seed.py"]
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  pgdata:
+  miniodata:

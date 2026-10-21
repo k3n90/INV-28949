@@ -1,0 +1,39 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: sans-serif;
+  color: #1a1a1a;
+  background: #fff;
+}
+
+main {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+h2 {
+  margin: 0 0 16px;
+  font-size: 28px;
+}
+
+.goods {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.good img {
+  display: block;
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  background: #eee;
+}
+
+.good p {
+  margin: 8px 0 0;
+}

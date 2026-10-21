@@ -2,8 +2,8 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-invix}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-invix}
+      POSTGRES_USER: ${POSTGRES_USER:-INV-28949}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
       POSTGRES_DB: ${POSTGRES_DB:-shop}
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -16,11 +16,11 @@ services:
     restart: unless-stopped
 
   minio:
-    image: minio/minio:latest
+    image: docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-invix}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-invix-secret}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-INV-28949}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
     volumes:
       - miniodata:/data
     restart: unless-stopped
@@ -28,16 +28,16 @@ services:
   api:
     build: ./backend
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-invix}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-invix}
+      POSTGRES_USER: ${POSTGRES_USER:-INV-28949}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
       POSTGRES_DB: ${POSTGRES_DB:-shop}
       POSTGRES_HOST: postgres
       MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-invix}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-invix-secret}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-INV-28949}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-}
       MINIO_BUCKET: ${MINIO_BUCKET:-goods}
-      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-dev-internal-token}
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8090}
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,11 +62,13 @@ services:
     environment:
       BOT_TOKEN: ${BOT_TOKEN:-}
       ADMIN_IDS: ${ADMIN_IDS:-}
-      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-dev-internal-token}
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-}
       API_URL: http://api:8000
-      WEBAPP_URL: ${WEBAPP_URL:-http://localhost:8080}
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
-      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-dev-webhook-secret}
+      WEBAPP_URL: ${WEBAPP_URL:-http://localhost:8090}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8090}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
+      TELEGRAM_PROXY: ${TELEGRAM_PROXY:-}
+      BOT_MODE: ${BOT_MODE:-polling}
     depends_on:
       api:
         condition: service_healthy
@@ -108,7 +110,7 @@ services:
   nginx:
     build: ./nginx
     ports:
-      - "127.0.0.1:8080:80"
+      - "127.0.0.1:8090:80"
     depends_on:
       api:
         condition: service_healthy
@@ -123,13 +125,13 @@ services:
   seed:
     build: ./backend
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-invix}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-invix}
+      POSTGRES_USER: ${POSTGRES_USER:-INV-28949}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
       POSTGRES_DB: ${POSTGRES_DB:-shop}
       POSTGRES_HOST: postgres
       MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-invix}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-invix-secret}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-INV-28949}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-}
       MINIO_BUCKET: ${MINIO_BUCKET:-goods}
     volumes:
       - ./seed:/seed:ro

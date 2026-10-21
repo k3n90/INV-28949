@@ -1,8 +1,8 @@
 # Тестовое задание от Invix (мой код INV-28949)
 
 Демо-стенд: [https://invix.apostol-bot.ru](https://invix.apostol-bot.ru)
-Демо-telegram: [https://t.me/INV28949_bot](https://t.me/INV28949_bot)
 
+Демо-telegram: [https://t.me/INV28949_bot](https://t.me/INV28949_bot)
 
 Каталог товаров: страница на Next.js, API на FastAPI, бот на aiogram 3. Фото хранятся в MinIO, записи о товарах — в PostgreSQL. Каталог открывается в браузере и в Telegram Mini App.
 
